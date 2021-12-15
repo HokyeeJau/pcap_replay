@@ -1,0 +1,8 @@
+remote_info:
+  remote_ip_address: 
+  remote_ipv6: 
+  remote_mac_address: 
+  remote_port: 9996
+server:
+  workers: 1
+  pcap_file: 
