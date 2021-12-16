@@ -37,7 +37,8 @@ function download(){
 
 function activate(){
 	echo "------- Run PCAP Replay -------"
-	/opt/py3/bin/python3.8 /opt/pcap_replay/main.py
+	nohup /opt/py3/bin/python3 -u /opt/pcap_replay/main.py > test.log 2>&1 &
+	echo "Replaying!"
 }
 
 function usage(){
