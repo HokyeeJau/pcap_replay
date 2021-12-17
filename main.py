@@ -89,7 +89,8 @@ class PcapFileExtractor(object):
     remote_mac_address = ''
     remote_ip_address = '10.0.107.61'
     remote_ipv6 = ''
-    remote_port = 9996
+    remote_cflow_port = 9996
+    remote_sflow_port = 6343
 
     pyshark_data = []
 
@@ -98,7 +99,6 @@ class PcapFileExtractor(object):
         self.local_mac_address = self.get_local_mac_address()
         self.local_ip_address = self.get_local_ip_address()
         self.local_ipv6 = self.get_local_ipv6()
-        self.local_port = 9996
 
         self.__dict__.update(**config)
 
@@ -113,7 +113,7 @@ class PcapFileExtractor(object):
         packets = rdpcap(self.file_path)
         ps = []
         for packet in packets:
-            # 确认该包是cflow
+            # 确认该包是cflow或者sflow
             if packet.getlayer('Netflow Header'):
                 version = packet.getlayer('Netflow Header').fields['version']
                 # 确认版本号v5或者v9
@@ -130,8 +130,17 @@ class PcapFileExtractor(object):
                     # pkt = IP(self.remote_ip_address) / ICMP()
 
                     # netflow的包
-                    pkt = IP(dst=self.remote_ip_address)/UDP(dport=self.remote_port)/packet.getlayer('Netflow Header')
+                    pkt = IP(dst=self.remote_ip_address) / UDP(dport=self.remote_cflow_port) / packet.getlayer('Netflow Header')
                     ps.append(pkt)
+                if packet.getlayer('IP').fields['version'] == and packet.getlayer('Netflow Header').fields['version'] == 0:
+                    pkt = packet.copy()
+
+                    pkt.getlayer('IP').fields['src'] = self.local_ip_address
+                    pkt.getlayer('IP').fields['dst'] = self.remote_ip_address
+
+                    pkt.getlayer('Ether').fields['dst'] = self.remote_mac_address
+                    ps.append(pkt)
+
         return ps
 
     def pyshark_extractor(self):
@@ -200,11 +209,10 @@ def get_handler_config():
 def scapy_send_package(number, worker, pkts):
     """ 为多线程创建的发包函数 """
     idx = 1
-#    while True:
-    for j in range(len(pkts)):
-        send(pkts[j])
-    print(len(pkts))
-    idx += 1
+    while True:
+        for j in range(len(pkts)):
+            send(pkts[j])
+        idx += 1
 
 
 if __name__ == '__main__':
@@ -223,19 +231,19 @@ if __name__ == '__main__':
         extractor = PcapFileExtractor(config.get('server').get('pcap_file'), remote_info)
         pkts = extractor.scapy_extractor()
 
-        # 获取线程数与服务器编号
+        # # 获取线程数与服务器编号
         workers = config.get('server').get('workers')
         number = config.get('server').get('number')
-
+        
         # 多线程发送
         threads = []
         for i in range(workers):
             t = threading.Thread(target=scapy_send_package, args=(number, i+1, pkts))
             threads.append(t)
-
+        
         for i in range(workers):
             threads[i].start()
-
+        
         for i in range(workers):
             threads[i].join()
     except Exception as e:
