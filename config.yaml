@@ -2,7 +2,9 @@ remote_info:
   remote_ip_address: 
   remote_ipv6: 
   remote_mac_address: 
-  remote_port: 9996
+  remote_cflow_port: 9996
+  remote_sflow_port: 6343
+  
 server:
   workers: 1
   pcap_file: 
