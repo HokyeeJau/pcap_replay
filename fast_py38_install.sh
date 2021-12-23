@@ -2,6 +2,7 @@
 #
 
 action=$1
+target=$2
 
 function download(){
 	echo "------- Start Fast Python3.8.5 Installation -------"
@@ -36,29 +37,59 @@ function download(){
 }
 
 function activate(){
-	echo "------- Run PCAP Replay -------"
-	nohup /opt/py3/bin/python3 -u /opt/pcap_replay/main.py > test.log 2>&1 &
-	echo "Replaying!"
+  for i in $(seq 1 $1)
+  do
+    echo "------- Run PCAP Replay -------"
+    nohup /opt/py3/bin/python -u /opt/pcap_replay/main.py > test.log 2>&1 &
+    echo "Replaying!"
+  done
+}
+
+function stop(){
+  pids=`ps -ef | grep /opt/py3/bin/python | grep -v "grep" | awk '{print $2}'`
+  echo "Current processes: $pids"
+
+  for id in $pids
+  do
+    kill -9 $id
+    echo "killed $id"
+  done
+}
+
+function count(){
+  pids=`ps -ef | grep /opt/py3/bin/python | grep -v "grep" | awk '{print $2}'`
+  echo $pids
 }
 
 function usage(){
-	echo '流量重放安装脚本'
-	echo 
+	echo 'Pcap Replay Handler'
+	echo
 	echo "Usage: "
 	echo "	./fast_py38_install [COMMAND]"
 	echo "	./fast_py38_install --help"
 	echo "Commands: "
-	echo "	download    安装py38环境与虚拟环境"
-	echo "	activate    启动重放"
+	echo "	download    Install Python Envr"
+	echo "	activate    Start Replay"
+	echo "	stop        Stop Replay"
+	echo "	count       Count replay processes"
 }
 
 function main(){
-	case "${action}" in 
+	case "${action}" in
 		download)
 			download
 			;;
 		activate)
-			activate
+		  if [ ! $target ]; then
+		    target=3
+		  fi
+		  activate $target
+			;;
+		count)
+			count
+			;;
+		stop)
+			stop
 			;;
 		--help)
 			usage
